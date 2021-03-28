@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 import json
 import time
+import os
 import argparse
 import matplotlib.pyplot as plt
 l = []
@@ -98,6 +99,7 @@ if (__name__ == '__main__'):
             l = json.load(f)
             olddate = time.mktime(time.strptime(l[-1]['date'], '%Y-%m-%d %H:%M:%S'))
     except FileNotFoundError:
-        pass
+        if(not os.path.exists('logs')):
+            os.mkdir('logs')
     fetch()
     draw()
