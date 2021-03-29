@@ -5,8 +5,17 @@ import time
 import os
 import argparse
 import matplotlib.pyplot as plt
-l = []
+import matplotlib.animation as ani
+import matplotlib.gridspec as gs
+rec = []
 olddate = 0
+
+parser = argparse.ArgumentParser(description='Arknights Gacha Statistics - 一个明日方舟抽卡统计工具', add_help= True)
+parser.add_argument('-r', '--reset', action='store_true', help='清除历史记录.')
+parser.add_argument('-s', '--skip-fetch', action='store_true', help='跳过从官网更新抽卡数据.')
+parser.add_argument('--skip-draw', action='store_true', help='跳过画图.')
+parser.add_argument('-e', '--export', action='store_true', help='直接从已有数据导出图片.')
+args = parser.parse_args()
 
 def fetch():
     #初始化浏览器
@@ -29,7 +38,7 @@ def fetch():
     print('UID: %s' % uid)
     time.sleep(3)
     i = 1
-    nl = []
+    new_rec = []
     loop = True
     while loop:
         print('------------\nPage: %d' % i)
@@ -52,7 +61,7 @@ def fetch():
                 else:
                     rarity = 3
                 print('%d★%s' % (rarity, char.text), end=' ')
-                nl.append({
+                new_rec.append({
                     'date': date.text,
                     'name': char.text,
                     'rarity': rarity
@@ -67,39 +76,91 @@ def fetch():
     browser.close()
     #写入log
     print('Dump json')
-    l.extend(reversed(nl))
+    rec.extend(reversed(new_rec))
     with open('logs/log.json', 'w', encoding='UTF-8') as f:
-        f.write(json.dumps(l, indent=2, separators=(',', ': '), ensure_ascii=False))
+        f.write(json.dumps(rec, indent=2, separators=(',', ': '), ensure_ascii=False))
     print('Done')
-    time.sleep(3)
+    time.sleep(1)
+    return None
 
 def draw():
     print('Draw picture')
+    # 统计数据
+    total = len(rec)
     count = [0, 0, 0, 0]
-    for i in l:
-        count[i['rarity']-3] += 1
-    fig = plt.figure()
-    plt.pie(
-        count,
-        colors=['grey', 'blue', 'yellow', 'orange'],
-        labels=['3★', '4★', '5★', '6★'],
-        explode=[0.03, 0.04, 0.05, 0.06],
-        pctdistance=0.8,
-        autopct='%1.2f%%',
-        wedgeprops=dict(edgecolor='black', linewidth=1)
+    trend = [[0], [0], [0], [0]]
+    tmp = [0, 0, 0, 0]
+    for i in rec:
+        index = i['rarity']-3
+        count[index] += 1
+        for j in range(4):
+            trend[j].append(trend[j][-1]+1 if index ==  j else trend[j][-1])
+    # 画图
+    fig, axes = plt.subplots(
+        2, 2,
+        figsize = (16, 9),
+        gridspec_kw = dict(height_ratios=[9, 7], width_ratios=[2, 1])
     )
-    plt.title('Arknight Gacha Statistics', bbox={'facecolor':'0.8', 'pad':5})
+    colors = ['lightgrey', 'cyan', 'yellow', 'orange']
+    labels = ['3★', '4★', '5★', '6★']
+    plt.suptitle('Arknight Gacha Statistics', bbox={'facecolor':'0.9', 'pad':5})
+    # 稀有度分布饼图
+    axes[0, 0].pie(
+        count,
+        colors = colors,
+        labels = labels,
+        explode = [0.02, 0.02, 0.08, 0.16],
+        pctdistance = 0.7,
+        autopct = lambda x: '%d / %1.2f%%' % (x*total/100, x),
+        wedgeprops = dict(edgecolor='black', linewidth=1)
+    )
+    axes[0, 0].set_title('total: %d' % total, y=-0.05)
+    # 稀有度分布趋势堆积式折线图
+    axes[0, 1].stackplot(
+        range(total+1), # x轴
+        trend[3], trend[2], trend[1], trend[0], # 折线数据
+        labels = reversed(labels), # 倒序排列 -> 高稀有度在下
+        colors = reversed(colors)
+    )
+    axes[0, 1].set_title('Rarity distribution trend')
+    axes[0, 1].legend(loc=2)
+    # 未完成: 5/6星角色出货统计（柱状图） and  每25(暂定)抽的出率统计（柱状图）
+    axes[1, 0].set_title('High rarity character distribution (Unfinished)')
+    axes[1, 1].set_title('Rarity distribution in every 25 draws (Unfinished)')
+    # 保存&显示
+    filename = rec[-1]['date'].replace(':', '-')
+    if (args.export):
+        fig.savefig('logs/%s.jpg' % filename)
+        print('Saved to logs/%s.jpg' % filename)
+        return None
     fig.show()
-    input('请按回车继续')
-    fig.savefig('logs/%s.jpg' % l[-1]['date'].replace(':', '-'))
+    ans = input('是否保存图片Y/n? ')
+    if (ans.lower() == 'y' or not ans):
+        fig.savefig('logs/%s.jpg' % filename)
+        print('Saved to logs/%s.jpg' % filename)
+    else:
+        print('Not save')
+    return None
 
 if (__name__ == '__main__'):
     try:
         with open('logs/log.json', 'r', encoding='UTF-8') as f:
-            l = json.load(f)
-            olddate = time.mktime(time.strptime(l[-1]['date'], '%Y-%m-%d %H:%M:%S'))
+            rec = json.load(f)
+            olddate = time.mktime(time.strptime(rec[-1]['date'], '%Y-%m-%d %H:%M:%S'))
     except FileNotFoundError:
         if(not os.path.exists('logs')):
             os.mkdir('logs')
-    fetch()
-    draw()
+    if (args.reset):
+        try:
+            for root, dirs, files in os.walk('logs', topdown=False):
+                for name in files:
+                    print('删除%s' % os.path.join(root, name))
+                    os.remove(os.path.join(root, name))
+        except:
+            print('没有文件需要删除')
+        exit()
+    if (not (args.skip_fetch or args.export)):
+        fetch()
+    if (not args.skip_draw):
+        draw()
+    print('All Done, exiting...')
