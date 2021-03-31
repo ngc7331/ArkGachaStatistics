@@ -31,6 +31,8 @@ usage: ArkGachaStatistics.py [-h] [-r] [-s] [--skip-draw] [-e]
   -e, --export          直接从已有数据导出图片.
   -f filename, --file filename
                         设置记录的文件名(默认为log.json).
+  -m {3,4,5,6}, --minimum-rarity {3,4,5,6}
+                        设置单角色统计最低星级(3~6的整数，默认为4).
   -r, --reset           清除历史记录.
   -s, --skip-fetch      跳过从官网更新抽卡数据.
   --skip-draw           跳过画图.
@@ -39,6 +41,7 @@ usage: ArkGachaStatistics.py [-h] [-r] [-s] [--skip-draw] [-e]
 5. **注意**：本程序依赖[官网数据](https://ak.hypergryph.com/user/inquiryGacha)，而它只保存**30日，100条以内**数据，且查询结果可能与游戏内实际操作存在延迟。若您希望获得较为完整的数据，请确保在每个30天，100抽内至少运行一次（程序会自动抛弃重复的数据）
 
 ## Change log
+- 2021-03-31 修复获取“下一页”时的bug，-m指定左下角柱状图最低星级
 - 2021-03-31 高星干员分布和每25抽稀有度分布柱状图，中文显示，-f指定log文件名（如果需要获取多个账户的数据请使用此功能）
 - 2021-03-29 绘制稀有度分布堆叠折线图，argparse参数解析
 - 2021-03-28 创建项目，获取数据以及绘制稀有度分布饼图

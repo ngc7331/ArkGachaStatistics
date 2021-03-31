@@ -8,12 +8,12 @@ import matplotlib.pyplot as plt
 import pylab
 rec = []
 olddate = 0
-logfile = 'log'
 
 parser = argparse.ArgumentParser(description='Arknights Gacha Statistics - 一个明日方舟抽卡统计工具', add_help= True)
 parser.add_argument('-d', '--debug', action='store_true', help='输出调试信息.')
 parser.add_argument('-e', '--export', action='store_true', help='直接从已有数据导出图片.')
-parser.add_argument('-f', '--file', metavar='filename', help='设置记录的文件名(默认为log.json).')
+parser.add_argument('-f', '--file', metavar='filename', default='log', help='设置记录的文件名(默认为log.json).')
+parser.add_argument('-m', '--minimum-rarity', type=int, choices=range(3, 7), default=4, help='设置单角色统计最低星级(3~6的整数，默认为4).')
 parser.add_argument('-r', '--reset', action='store_true', help='清除历史记录.')
 parser.add_argument('-s', '--skip-fetch', action='store_true', help='跳过从官网更新抽卡数据.')
 parser.add_argument('--skip-draw', action='store_true', help='跳过画图.')
@@ -77,7 +77,7 @@ def fetch():
                     'rarity': rarity
                 })
             print()
-        next_page = browser.find_element_by_xpath('//*[@id="app"]/div/div/div[3]/div[2]/div[2]/div[2]/ul/li[7]/a')
+        next_page = browser.find_element_by_xpath('//*[@id="app"]/div/div/div[3]/div[2]/div[2]/div[2]/ul/li[last()]/a')
         if (next_page.get_attribute('aria-disabled') == 'true' or not loop):
             break
         i += 1
@@ -99,7 +99,7 @@ def draw():
     total = len(rec)
     count = [0, 0, 0, 0] # 3~6星计数
     trend = [[0], [0], [0], [0]] # 3~6星趋势
-    chars = {} # 5/6星角色计数
+    chars = {} # 角色计数
     trend25 = [] #25抽分布
     tmp = [0, 0, 0, 0]
     for i in rec:
@@ -107,7 +107,7 @@ def draw():
         count[rarity-3] += 1
         for j in range(4):
             trend[j].append(trend[j][-1]+1 if rarity-3 ==  j else trend[j][-1])
-        if (rarity >= 5):
+        if (rarity >= args.minimum_rarity):
             chars.setdefault(name, 0)
             chars[name] += 1
         tmp[rarity-3] += 1
@@ -126,7 +126,7 @@ def draw():
     colors = ['lightgrey', 'cyan', 'yellow', 'orange']
     labels = ['3★', '4★', '5★', '6★']
     plt.suptitle('Arknight Gacha Statistics', bbox={'facecolor':'0.9', 'pad':5})
-    # 稀有度分布饼图
+    # 稀有度分布（饼图）
     axes[0, 0].pie(
         count,
         colors = colors,
@@ -137,8 +137,8 @@ def draw():
         wedgeprops = dict(edgecolor='black', linewidth=1)
     )
     axes[0, 0].set_title('总计: %d抽' % total, y=-0.05)
-    # 稀有度分布趋势堆积式折线图
-    axes[0, 1].set_title('稀有度分布趋势')
+    # 稀有度累计趋势（堆积式折线图）
+    axes[0, 1].set_title('稀有度累计趋势')
     axes[0, 1].stackplot(
         range(total+1), # x轴
         trend[3], trend[2], trend[1], trend[0], # 折线数据
@@ -146,22 +146,25 @@ def draw():
         colors = reversed(colors)
     )
     axes[0, 1].legend(loc=2)
-    # 高星角色统计
-    axes[1, 0].set_title('5/6星角色统计')
+    # 角色统计（柱状图）
+    axes[1, 0].set_title('%d★以上角色统计' % args.minimum_rarity)
     axes[1, 0].bar(
         list(map(lambda l: l[0], [l for l in chars])),
         list(map(lambda l: l[1], [l for l in chars]))
     )
+    debug(len(chars))
     for tick in axes[1, 0].get_xticklabels(): # 旋转标签
         tick.set_rotation(45)
-    # 未完成: 每25(暂定)抽的出率统计（柱状图）
+        tick.set_fontsize(max(20-0.26*len(chars), 6)) # 字体大小：对测试数据做线性拟合，最小为6
+    # 每25(暂定)抽稀有度分布（堆积式柱状图）
     axes[1, 1].set_title('每25抽稀有度分布')
     for i in range(4):
         axes[1, 1].bar(
             range(len(trend25)),
             list(map(lambda l: l[i], [l for l in trend25])),
             bottom = list(map(lambda l: sum(l[i+1:]), [l for l in trend25])),
-            color = colors[i]
+            color = colors[i],
+            tick_label = list(map(lambda x: str(x*25), range(len(trend25))))
         )
     # 保存&显示
     filename = '%s %s' % (logfile, rec[-1]['date'].replace(':', '-'))
@@ -179,7 +182,7 @@ def draw():
     return None
 
 if (__name__ == '__main__'):
-    logfile = args.file.replace('.json', '') if args.file else 'log'
+    logfile = args.file.replace('.json', '')
     try:
         with open('logs/%s.json' % logfile, 'r', encoding='UTF-8') as f:
             rec = json.load(f)
