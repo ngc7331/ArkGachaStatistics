@@ -115,6 +115,7 @@ def draw():
             trend25.append(tmp)
             tmp = [0, 0, 0, 0]
     chars = sorted(chars.items(), key=lambda d:d[1], reverse=True)
+    debug(count)
     debug(chars)
     debug(trend25)
     # 画图
@@ -133,10 +134,12 @@ def draw():
         labels = labels,
         explode = [0.02, 0.02, 0.08, 0.16],
         pctdistance = 0.7,
-        autopct = lambda x: '%d / %1.2f%%' % (x*total/100, x),
+        autopct = lambda x: '%d / %1.2f%%' % (round(x*total/100), x),
         wedgeprops = dict(edgecolor='black', linewidth=1)
     )
-    axes[0, 0].set_title('总计: %d抽' % total, y=-0.05)
+    axes[0, 0].text(-2.5, 0.4, '总计: %d抽' % total)
+    axes[0, 0].text(-2.5, 0.2, '平均6★间距：%.2f' % (total/count[3]))
+    axes[0, 0].text(-2.5, 0, '平均5★间距：%.2f' % (total/count[2]))
     # 稀有度累计趋势（堆积式折线图）
     axes[0, 1].set_title('稀有度累计趋势')
     axes[0, 1].stackplot(
@@ -149,8 +152,8 @@ def draw():
     # 角色统计（柱状图）
     axes[1, 0].set_title('%d★以上角色统计' % args.minimum_rarity)
     axes[1, 0].bar(
-        list(map(lambda l: l[0], [l for l in chars])),
-        list(map(lambda l: l[1], [l for l in chars]))
+        [l[0] for l in chars], # 角色名 => 横轴
+        [l[1] for l in chars]  # 出货次数 => 纵轴
     )
     debug(len(chars))
     for tick in axes[1, 0].get_xticklabels(): # 旋转标签
@@ -161,7 +164,7 @@ def draw():
     for i in range(4):
         axes[1, 1].bar(
             range(len(trend25)),
-            list(map(lambda l: l[i], [l for l in trend25])),
+            [l[i] for l in trend25],
             bottom = list(map(lambda l: sum(l[i+1:]), [l for l in trend25])),
             color = colors[i],
             tick_label = list(map(lambda x: str(x*25), range(len(trend25))))
