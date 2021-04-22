@@ -6,7 +6,10 @@ import os
 import argparse
 import matplotlib.pyplot as plt
 import pylab
+import re
 rec = []
+UID = ''
+cookies = []
 olddate = 0
 
 parser = argparse.ArgumentParser(description='Arknights Gacha Statistics - 一个明日方舟抽卡统计工具', add_help= True)
@@ -15,7 +18,7 @@ parser.add_argument('-e', '--export', action='store_true', help='直接从已有
 parser.add_argument('-f', '--file', metavar='filename', default='log', help='设置记录的文件名(默认为log.json).')
 parser.add_argument('-m', '--minimum-rarity', type=int, choices=range(3, 7), default=4, help='设置单角色统计最低星级(3~6的整数，默认为4).')
 parser.add_argument('-r', '--reset', action='store_true', help='清除历史记录.')
-parser.add_argument('-s', '--skip-fetch', action='store_true', help='跳过从官网更新抽卡数据.')
+parser.add_argument('-s', '--skip-inquiry', action='store_true', help='跳过从官网更新抽卡数据.')
 parser.add_argument('--skip-draw', action='store_true', help='跳过画图.')
 args = parser.parse_args()
 
@@ -27,13 +30,23 @@ def debug(m):
     if (args.debug):
         print('[Debug] %s' % m)
 
-def fetch():
+def inquiry():
+    global cookies, UID, rec
+
     #初始化浏览器
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     browser = webdriver.Chrome(executable_path='chromedriver.exe', options=chrome_options)
+
+    if (cookies):
+        debug('Load cookies')
+        debug(cookies)
+        browser.get('https://ak.hypergryph.com/user/inquiryGacha')
+        browser.delete_all_cookies()
+        for cookie in cookies:
+            browser.add_cookie(cookie)
 
     uid = ''
     while not uid:
@@ -46,7 +59,11 @@ def fetch():
         except NoSuchElementException:
             input('未登录！请手动登录后按回车继续')
     print('UID: %s' % uid)
+    if (UID and UID != uid):
+        print('UID与logs/%s.json中记录值(%s)不匹配，请检查' % (logfile, UID))
+        exit()
     time.sleep(3)
+    cookies = browser.get_cookies()
     i = 1
     new_rec = []
     loop = True
@@ -88,7 +105,16 @@ def fetch():
     print('Dump json')
     rec.extend(reversed(new_rec))
     with open('logs/%s.json' % logfile, 'w', encoding='UTF-8') as f:
-        f.write(json.dumps(rec, indent=2, separators=(',', ': '), ensure_ascii=False))
+        f.write(re.sub(
+            '\n\s*?("date":.*?)\n\s*?("name":.*?)\n\s*?("rarity":.*?)\n\s*?}',
+            ' \\1 \\2 \\3 }',
+            json.dumps(
+                {'UID': uid, 'cookies': cookies, 'data': rec},
+                indent=2,
+                separators=(',', ': '),
+                ensure_ascii=False)
+            )
+        )
     print('Done')
     time.sleep(1)
     return None
@@ -188,14 +214,20 @@ if (__name__ == '__main__'):
     logfile = args.file.replace('.json', '')
     try:
         with open('logs/%s.json' % logfile, 'r', encoding='UTF-8') as f:
-            rec = json.load(f)
+            log = json.load(f)
+            rec = log['data']
+            UID = log['UID']
+            cookies = log['cookies']
             olddate = time.mktime(time.strptime(rec[-1]['date'], '%Y-%m-%d %H:%M:%S'))
     except FileNotFoundError:
         if(not os.path.exists('logs')):
             os.mkdir('logs')
-        if (args.skip_fetch or args.export):
+        if (args.skip_inquiry or args.export):
             print('错误：未找到指定的log文件，请检查-f参数，或不使用-s/-e')
             exit()
+    except KeyError as e:
+        debug(e)
+        rec = log # 处理0422以前版本数据
     if (args.reset):
         try:
             for root, dirs, files in os.walk('logs', topdown=False):
@@ -205,8 +237,8 @@ if (__name__ == '__main__'):
         except:
             print('没有文件需要删除')
         exit()
-    if (not (args.skip_fetch or args.export)):
-        fetch()
+    if (not (args.skip_inquiry or args.export)):
+        inquiry()
     if (not args.skip_draw):
         draw()
     print('All Done, exiting...')

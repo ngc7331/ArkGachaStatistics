@@ -5,9 +5,10 @@
 - 登录
 ![](preview/login.png)
 - 自动获取数据
-![](preview/fetch.png)
+![](preview/inquiry.png)
 - 本地log文件
-![](preview/log.png)
+![](preview/log1.png)
+![](preview/log2.png)
 - 生成图片
 ![](preview/export.jpg)
 
@@ -25,7 +26,7 @@
 2. 命令行运行`pip install -r requirements.txt`安装依赖。
 3. 命令行运行`python ArkGachaStatistics.py`执行主程序。~~似乎直接双击即可正常运行？~~ 可选参数：
 ```
-usage: ArkGachaStatistics.py [-h] [-r] [-s] [--skip-draw] [-e]
+usage: ArkGachaStatistics.py [-h] [-d] [-e] [-f filename] [-m {3,4,5,6}] [-r] [-s] [--skip-draw]
   -h, --help            show this help message and exit
   -d, --debug           输出调试信息.
   -e, --export          直接从已有数据导出图片.
@@ -34,13 +35,17 @@ usage: ArkGachaStatistics.py [-h] [-r] [-s] [--skip-draw] [-e]
   -m {3,4,5,6}, --minimum-rarity {3,4,5,6}
                         设置单角色统计最低星级(3~6的整数，默认为4).
   -r, --reset           清除历史记录.
-  -s, --skip-fetch      跳过从官网更新抽卡数据.
+  -s, --skip-inquiry    跳过从官网更新抽卡数据.
   --skip-draw           跳过画图.
 ```
 4. 输入账户名和密码登录后按回车继续。
-5. **注意**：本程序依赖[官网数据](https://ak.hypergryph.com/user/inquiryGacha)，而它只保存**30日，100条以内**数据，且查询结果可能与游戏内实际操作存在延迟。若您希望获得较为完整的数据，请确保在每个30天，100抽内至少运行一次（程序会自动抛弃重复的数据）
+
+## **注意事项**
+1. 本程序依赖[官网数据](https://ak.hypergryph.com/user/inquiryGacha)，而它只保存**30日，100条以内**数据，且查询结果可能与游戏内实际操作存在延迟。若您希望获得较为完整的数据，请确保在每个30天，100抽内至少运行一次（程序会自动抛弃重复的数据）
+2. 自2021-04-22起程序将cookies保存进json文件以实现自动登录，请勿将`logs/<filename>.json`分享给其他人，如有需要请手动删除其中的cookies字段！
 
 ## Change log
+- 2021-04-22 实现通过保存和读取cookies来自动登录
 - 2021-04-02 修复饼图中数据取整错误的bug，调整数据文字显示位置，显示5~6星平均间距
 - 2021-03-31 修复获取“下一页”时的bug，-m指定左下角柱状图最低星级
 - 2021-03-31 高星干员分布和每25抽稀有度分布柱状图，中文显示，-f指定log文件名（如果需要获取多个账户的数据请使用此功能）
