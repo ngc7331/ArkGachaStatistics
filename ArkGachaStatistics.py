@@ -1,18 +1,21 @@
+import argparse
+import json
+import os
+import re
+import time
+import matplotlib.pyplot as plt
+import msedge.selenium_tools
+import pylab
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-import json
-import time
-import os
-import argparse
-import matplotlib.pyplot as plt
-import pylab
-import re
+
 rec = []
 UID = ''
 cookies = []
 olddate = 0
 
 parser = argparse.ArgumentParser(description='Arknights Gacha Statistics - 一个明日方舟抽卡统计工具', add_help= True)
+parser.add_argument('-b', '--browser', choices=['chrome', 'edge'], default='chrome', help='设置使用的浏览器.')
 parser.add_argument('-d', '--debug', action='store_true', help='输出调试信息.')
 parser.add_argument('-e', '--export', action='store_true', help='直接从已有数据导出图片.')
 parser.add_argument('-f', '--file', metavar='filename', default='log', help='设置记录的文件名(默认为log.json).')
@@ -34,11 +37,19 @@ def inquiry():
     global cookies, UID, rec
 
     #初始化浏览器
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--no-sandbox')
-    browser = webdriver.Chrome(executable_path='chromedriver.exe', options=chrome_options)
+    if (args.browser == 'chrome'):
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+        browser = webdriver.Chrome(executable_path='driver/chromedriver.exe', options=options)
+    elif (args.browser == 'edge'):
+        options = msedge.selenium_tools.EdgeOptions()
+        options.use_chromium = True
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+        browser = msedge.selenium_tools.Edge(executable_path='driver/msedgedriver.exe', options=options)
 
     if (cookies):
         debug('Load cookies')
