@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import msedge.selenium_tools
 import pylab
+from modules.Driver import Driver
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
@@ -36,20 +37,8 @@ def debug(m):
 def inquiry():
     global cookies, UID, rec
 
-    #初始化浏览器
-    if (args.browser == 'chrome'):
-        options = webdriver.ChromeOptions()
-        options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        options.add_argument('--disable-gpu')
-        options.add_argument('--no-sandbox')
-        browser = webdriver.Chrome(executable_path='driver/chromedriver.exe', options=options)
-    elif (args.browser == 'edge'):
-        options = msedge.selenium_tools.EdgeOptions()
-        options.use_chromium = True
-        options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        options.add_argument('--disable-gpu')
-        options.add_argument('--no-sandbox')
-        browser = msedge.selenium_tools.Edge(executable_path='driver/msedgedriver.exe', options=options)
+    tp = 'chrome' if args.browser is None else args.browser
+    browser = Driver(driver_path='./driver', arch='win64').createDriver(tp, False)
 
     if (cookies):
         debug('Load cookies')
@@ -62,6 +51,7 @@ def inquiry():
     uid = ''
     while not uid:
         browser.get('https://ak.hypergryph.com/user/inquiryGacha')
+        time.sleep(1)
         try:
             uid = browser.find_element_by_xpath('//*[@id="app"]/div/div/div[3]/div[2]/div[2]/div[1]/span[2]').text
             valid = browser.find_element_by_xpath('//*[@id="app"]/div/div/div[3]/div[2]/div[2]/div[1]/span[1]').text == 'UID'
@@ -82,7 +72,7 @@ def inquiry():
         print('------------\nPage: %d' % i)
         lines = browser.find_elements_by_xpath('//*[@id="app"]/div/div/div[3]/div[2]/div[2]/div[2]/div/table/tbody/tr')
         for line in lines:
-            date, chars_l = line.find_elements_by_xpath('.//td')
+            date, pool, chars_l = line.find_elements_by_xpath('.//td')
             chars = chars_l.find_elements_by_xpath('.//li')
             if (time.mktime(time.strptime(date.text, '%Y-%m-%d %H:%M:%S')) <= olddate):
                 loop = False

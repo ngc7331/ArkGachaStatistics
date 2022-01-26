@@ -1,2 +1,6 @@
 logs/
 test.py
+*.log
+*.exe
+*.old
+modules/__pycache__/
