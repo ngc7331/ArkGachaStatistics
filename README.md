@@ -1,3 +1,10 @@
+# Maintenance suspended
+发现了一个同类且更好用的工具->[lie5860/hypergryph-gacha](https://github.com/lie5860/hypergryph-gacha)
+
+无需再本地安装python等运行环境，可直接在线使用
+
+我希望把精力放在现实学习生活以及其它项目上，本项目archive
+
 # Arknights Gacha Statistics
 一个练手用的明日方舟抽卡统计工具 - 基于python+selenium
 
